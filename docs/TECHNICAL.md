@@ -2,12 +2,28 @@
 
 ## English
 
-`LotGeometry.Contains` uses an even-odd polygon test and treats points on an edge as inside. `Rasterize` tests each cell centre, so its boolean result is an overlay mask and not an instruction to alter `ZoneBlock`. `LotDraft` limits the sketch to 64 finite vertices and rejects short edges, crossing edges and area below 1 m². `Classify` uses the maximum minus minimum of four terrain heights. The in-game button now intersects the centre-of-view ray with actual terrain, avoiding the earlier sea-level estimate. Added vertices and the 8 m preview are session-only and logged, not drawn on the map. No existing zoning cells are written.
-
-CS1's installed assemblies expose `ZoneBlock.SetZone`, `ZoneBlock.GetZone`, `ZoneManager.m_blocks`, `TerrainManager.RayCast`, and `TerrainManager.SampleRawHeightSmooth`. The logged 8 m preview uses world-axis-aligned sample squares and is capped at 16,384 bounding-box cells to avoid blocking the game UI; its count is geometric, not a count of valid or road-oriented CS1 zone cells. A future zoning adapter must map each selected polygon cell to a valid vanilla zone block, check road access, terrain and occupancy, and use the game's update path. It must preview exactly which cells will change and support undo on a copied save before any write feature is released.
+- **Geometry & Snapping ([`LotGeometry.cs`](../src/LotGeometry.cs), [`LotDraft.cs`](../src/LotDraft.cs))**:
+  - `LotGeometry.Contains` uses an even-odd polygon test and treats boundary points as inside.
+  - `SnapToRoadCurb` projects the mouse terrain raycast onto the nearest road segment curb (`centerline ± normal * halfWidth`) within `9.5 m`.
+  - `SnapToRightAngle` aligns new polygon edges to 0°/90°/180°/270° relative to the previous segment within `0.22 rad`.
+  - `BuildBlockFillPolygon` (*Paint Bucket*) casts 16 radial rays from the clicked point against nearby road segments (`NetSegment`), stops at the inner curb line, and simplifies collinear curb points into an enclosed block polygon.
+- **Procedural Layout Planner ([`PlacemakerPlanner.cs`](../src/PlacemakerPlanner.cs))**:
+  - Identifies the dominant road frontage edge (`FindFrontageEdge`), sets up a local $(u, v)$ coordinate frame aligned with the frontage, and generates deterministic layouts for 5 presets: `ParkingLot`, `CityPark`, `GardenNature`, `UrbanPlaza`, and `ZoneAndOutgrow`.
+  - *Outgrow* adds organic shrub/tree border blending along non-road edges and fills deep block interiors (`> 32 m` from boundary) beyond CS1's 4-cell zoning limit.
+- **Live Overlay & Execution ([`PlacemakerOverlay.cs`](../src/PlacemakerOverlay.cs), [`PlacemakerExecutor.cs`](../src/PlacemakerExecutor.cs), [`AssetCatalog.cs`](../src/AssetCatalog.cs))**:
+  - `PlacemakerOverlayManager : IRenderableManager` draws the live preview via `RenderManager.instance.OverlayEffect` (`DrawCircle`, `DrawSegment`).
+  - `PlacemakerExecutor` runs all mutations on the simulation thread via `SimulationManager.instance.AddAction` (`BuildingManager.CreateBuilding`, `NetManager.CreateNode`/`CreateSegment`, `TreeManager.CreateTree`, `PropManager.CreateProp`, `ZoneBlock.SetZone`) and records every entity ID and prior zone state in a `Stack<PlacementRecord>` for one-click `UndoLast`.
 
 ## Italiano
 
-`LotGeometry.Contains` usa la regola pari-dispari e considera interni i punti sul bordo. `Rasterize` verifica il centro di ogni cella: il risultato è una maschera per un overlay, non un ordine di modifica di `ZoneBlock`. `LotDraft` limita la bozza a 64 vertici finiti e rifiuta lati corti, incroci e superfici sotto 1 m². `Classify` calcola la differenza tra la quota massima e minima dei quattro angoli. Il pulsante ora interseca il raggio al centro della vista con il terreno reale, evitando la precedente stima sul livello del mare. Vertici e preview da 8 m valgono solo per la sessione e compaiono nel log, non sulla mappa. Non scrive celle di zoning.
-
-Le librerie installate di CS1 espongono `ZoneBlock.SetZone`, `ZoneBlock.GetZone`, `ZoneManager.m_blocks`, `TerrainManager.RayCast` e `TerrainManager.SampleRawHeightSmooth`. La preview nel log usa quadrati campione da 8 m allineati agli assi del mondo ed è limitata a 16.384 celle nel rettangolo contenitore per non bloccare l'interfaccia; il conteggio è geometrico, non indica celle di zona CS1 orientate alla strada o realmente zonizzabili. Un futuro adattatore dovrà collegare ogni cella poligonale a un blocco vanilla valido, verificare accesso stradale, terreno e occupazione, usare il percorso di aggiornamento del gioco, mostrare esattamente le celle coinvolte e offrire annullamento su un salvataggio copiato prima di rilasciare modifiche.
+- **Geometria e Snap ([`LotGeometry.cs`](../src/LotGeometry.cs), [`LotDraft.cs`](../src/LotDraft.cs))**:
+  - `LotGeometry.Contains` usa la regola pari-dispari includendo i bordi.
+  - `SnapToRoadCurb` aggancia il cursore al cordolo della strada più vicina (`asse ± normale * halfWidth`) entro `9,5 m`.
+  - `SnapToRightAngle` allinea i nuovi lati del poligono a 90° rispetto al lato precedente.
+  - `BuildBlockFillPolygon` (*Secchiello*) lancia 16 raggi radiali dal punto cliccato verso i segmenti stradali (`NetSegment`), fermandosi al cordolo interno e semplificando i vertici collineari per ottenere il poligono dell'isolato.
+- **Pianificatore Procedurale ([`PlacemakerPlanner.cs`](../src/PlacemakerPlanner.cs))**:
+  - Individua il fronte strada principale (`FindFrontageEdge`), costruisce un sistema di coordinate locale $(u, v)$ allineato alla strada e genera layout deterministici per 5 preset: `ParkingLot`, `CityPark`, `GardenNature`, `UrbanPlaza` e `ZoneAndOutgrow`.
+  - La funzione *Outgrow* aggiunge bordi vegetali organici lungo i lati non stradali e riempie i cortili interni profondi (`> 32 m` dal bordo), superando il limite di 4 celle dello zoning vanilla di CS1.
+- **Overlay Live ed Esecuzione ([`PlacemakerOverlay.cs`](../src/PlacemakerOverlay.cs), [`PlacemakerExecutor.cs`](../src/PlacemakerExecutor.cs), [`AssetCatalog.cs`](../src/AssetCatalog.cs))**:
+  - `PlacemakerOverlayManager : IRenderableManager` disegna l'anteprima in tempo reale tramite `RenderManager.instance.OverlayEffect`.
+  - `PlacemakerExecutor` esegue tutte le creazioni sul thread di simulazione (`SimulationManager.instance.AddAction`) e salva ogni ID creato o cella di zona modificata in uno `Stack<PlacementRecord>` per l'annullamento immediato (`UndoLast`).

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MetropolisTerrainLots
 {
-    // A temporary planning sketch. It is never serialized or written to ZoneBlock.
+    // A planning sketch that supports freeform polygons, block fills, and brush shapes.
     public sealed class LotDraft
     {
         private readonly List<Point2> _vertices = new List<Point2>();
@@ -16,6 +16,17 @@ namespace MetropolisTerrainLots
                 float.IsNaN(point.Y) || float.IsInfinity(point.Y))
                 throw new ArgumentException("Invalid coordinate", "point");
             _vertices.Add(point);
+        }
+
+        public void SetPolygon(Point2[] points)
+        {
+            _vertices.Clear();
+            if (points == null) return;
+            int limit = Math.Min(points.Length, 64);
+            for (int i = 0; i < limit; i++)
+            {
+                Add(points[i]);
+            }
         }
 
         public void Undo() { if (_vertices.Count > 0) _vertices.RemoveAt(_vertices.Count - 1); }
@@ -34,6 +45,56 @@ namespace MetropolisTerrainLots
                     twice += (double)a.X * b.Y - (double)b.X * a.Y;
                 }
                 return (float)(Math.Abs(twice) / 2);
+            }
+        }
+
+        public float PerimeterMeters
+        {
+            get
+            {
+                if (_vertices.Count < 2) return 0f;
+                float sum = 0f;
+                for (int i = 0; i < _vertices.Count; i++)
+                {
+                    Point2 a = _vertices[i];
+                    Point2 b = _vertices[(i + 1) % _vertices.Count];
+                    sum += a.DistanceTo(b);
+                }
+                return sum;
+            }
+        }
+
+        public Point2 Centroid
+        {
+            get
+            {
+                if (_vertices.Count == 0) return new Point2(0f, 0f);
+                float sx = 0f, sy = 0f;
+                for (int i = 0; i < _vertices.Count; i++)
+                {
+                    sx += _vertices[i].X;
+                    sy += _vertices[i].Y;
+                }
+                return new Point2(sx / _vertices.Count, sy / _vertices.Count);
+            }
+        }
+
+        public void GetBounds(out float minX, out float minY, out float maxX, out float maxY)
+        {
+            if (_vertices.Count == 0)
+            {
+                minX = minY = maxX = maxY = 0f;
+                return;
+            }
+            minX = maxX = _vertices[0].X;
+            minY = maxY = _vertices[0].Y;
+            for (int i = 1; i < _vertices.Count; i++)
+            {
+                Point2 v = _vertices[i];
+                if (v.X < minX) minX = v.X;
+                if (v.X > maxX) maxX = v.X;
+                if (v.Y < minY) minY = v.Y;
+                if (v.Y > maxY) maxY = v.Y;
             }
         }
 

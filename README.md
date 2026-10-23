@@ -1,35 +1,58 @@
-# Metropolis Terrain Lots · CS1
+# Metropolis Terrain Lots · Placemaker Edition (CS1)
 
-**Development toward v0.2.0-alpha.1.** Compiles against the local Epic build `1.21.1-f9-epic-win`; in-game interaction has not yet been validated.
+**v0.3.0 — In-game Park, Parking Lot, Plaza & Polygonal Lot Builder for Cities: Skylines 1.**  
+Compiles against the local Epic build `1.21.1-f9-epic-win` and passes 20 automated geometry and procedural layout checks. Inspired by both *Citystate Metropolis* polygonal lots and the *Placemaker* (`163638`) procedural area tool.
 
-## English
-
-The current mod adds a **32 × 32 m terrain sample** button in Mod Options. It raycasts the actual terrain at screen centre, samples four corners, classifies their height range as flat (≤1 m), gentle (≤4 m), or steep (>4 m), and writes the result to `Cities_Data/output_log.txt`. New buttons add, undo and clear polygon vertices at screen centre, then preview the count of selected 8 m cells and lot area in the log. The polygon validator rejects crossing edges and tiny lots. The rasterizer remains independent of CS1 zoning.
-
-This alpha **does not display a map overlay, draw persistent lots, paint zoning, place buildings, or replace the vanilla grid**. It does not change a save. CS1 growable assets remain constrained by their cell footprints; a polygon preview cannot itself create a curved building mesh.
-
-Run `./build.ps1` in PowerShell. The script builds `dist/MetropolisTerrainLots.dll` against installed game assemblies and runs 12 geometry checks. No game assembly is redistributed. To try the mod, copy only the DLL to a new folder under `Files/Mods`, enable it, load a copied save, and use the buttons in Mod Options. Aim the centre of the view at terrain for each vertex. Results appear in the game log; no on-map outline exists yet.
-
-Read [Citystate comparison](docs/CITYSTATE_COMPARISON.md), [technical scope](docs/TECHNICAL.md), [roadmap](docs/ROADMAP.md), and the [suite overview](https://github.com/CitiesSkylines-addons/metropolis-performance-lab/blob/main/docs/SUITE.md).
+---
 
 ## Italiano
 
-La mod aggiunge nelle opzioni un pulsante per **campionare 32 × 32 m di terreno**. Un raycast individua il terreno al centro della vista, poi legge quattro quote, classifica il dislivello come pianeggiante (≤1 m), lieve (≤4 m) o ripido (>4 m), e registra il risultato in `Cities_Data/output_log.txt`. Nuovi pulsanti aggiungono, annullano e cancellano i vertici di un poligono al centro vista, poi mostrano nel log area e numero di celle da 8 m. La validazione rifiuta incroci e lotti minuscoli. La rasterizzazione non è ancora collegata allo zoning di CS1.
+### Panoramica
+**Metropolis Terrain Lots · Placemaker** trasforma la selezione poligonale sul terreno di Cities: Skylines 1 in uno strumento completo in-game per disegnare e generare **parcheggi strutturati, parchi urbani, giardini botanici/naturali, piazze pedonali e isolati zonizzati con cortili interni ("Outgrow")**, con anteprima in tempo reale sulla mappa e annullamento completo (`Undo`).
 
-Questa alfa **non mostra un overlay sulla mappa, non disegna lotti permanenti, non dipinge zone, non piazza edifici e non sostituisce la griglia vanilla**. Non modifica il salvataggio. Gli asset growable di CS1 restano vincolati alle dimensioni in celle: una preview poligonale non genera da sola una mesh curva.
+### Funzionalità Principali (ispirate a Placemaker)
+1. **4 Strumenti di Selezione Area:**
+   - **Vertici (Poligono / Points):** clicca sul terreno per tracciare qualsiasi forma poligonale, con **Snap automatico ai cordoli stradali** e **Snap ad angolo retto (90°)**.
+   - **Secchiello (Riempi Isolato / Paint Bucket):** clicca all'interno di un isolato circondato da strade per rilevare i cordoli perimetrali e riempire automaticamente l'area interna.
+   - **Pennello Rettangolare (Rectangle Brush):** genera istantaneamente un lotto rettangolare allineato alla strada più vicina (`16 m`, `24 m`, `32 m`, `48 m`, `64 m`).
+   - **Pennello Circolare (Circle Brush):** genera una piazza o parco circolare/poligonale regolare.
+2. **5 Preset Procedurali ("Cosa Costruire"):**
+   - **Parcheggio (Parking Lot):** genera corsie pedonali/veicolari, file ordinate di stalli di parcheggio (`ParkingSpace` props), lampioni, alberature perimetrali ombreggianti ed eventuale asset fronte strada.
+   - **Parco Urbano (City Park & Playground):** posiziona un parco fronte strada compatibile e riempie il poligono con viali principali e trasversali, panchine, lampioni e boschetti.
+   - **Giardino & Natura (Garden & Nature Trail):** traccia sentieri sinuosi in ghiaia circondati da gruppi organici di alberi, cespugli e panchine panoramiche.
+   - **Piazza Pedonale (Urban Plaza):** disegna percorsi pavimentati simmetrici con colonnato di alberi, lampioni e sedute.
+   - **Zona + Cortile Interno (Zone + Courtyard Outgrow):** applica lo zoning `ZoneBlock` di CS1 lungo la fascia stradale (32 m) e riempie automaticamente il vuoto interno degli isolati più profondi con giardini o parcheggi condominiali.
+3. **Outgrow (Bordi Organici):**
+   - Smussa il confine rigido dei lotti aggiungendo siepi e vegetazione lungo i margini non stradali per integrare parchi e parcheggi col tessuto urbano circostante.
+4. **Anteprima Live sulla Mappa & Annullamento Sicuro (`Undo`):**
+   - Mostra in tempo reale su mappa (`RenderManager.OverlayEffect`) il cursore agganciato al cordolo, il perimetro, il fronte strada, i sentieri, gli stalli di parcheggio, gli alberi e le celle di zona prima di costruire.
+   - Pulsante **Annulla Ultimo** per rimuovere con un clic tutti gli edifici, sentieri, alberi, prop e modifiche di zona dell'ultimo piazzamento.
 
-Eseguire `./build.ps1` in PowerShell. Lo script compila `dist/MetropolisTerrainLots.dll` usando le librerie installate ed esegue 12 controlli geometrici. Non redistribuisce librerie del gioco. Per provarla, copiare solo la DLL in una nuova cartella sotto `Files/Mods`, abilitarla, caricare una copia del salvataggio e usare i pulsanti nelle opzioni. Puntare il centro della vista verso il terreno per ogni vertice. I risultati appaiono nel log; il contorno sulla mappa non esiste ancora.
+### Compilazione e Uso
+1. Eseguire `./build.ps1` in PowerShell per compilare `dist/MetropolisTerrainLots.dll` ed eseguire i 20 test geometrici e procedurali.
+2. Copiare `dist/MetropolisTerrainLots.dll` in `Files/Mods/MetropolisTerrainLots/`.
+3. In partita, cliccare sul pulsante flottante **`P/T`** o premere **`Alt+P`** per aprire il pannello **Metropolis Terrain Lots · Placemaker**.
 
-Leggere [confronto con Citystate](docs/CITYSTATE_COMPARISON.md), [ambito tecnico](docs/TECHNICAL.md) e [roadmap](docs/ROADMAP.md).
+---
 
-## Discoverability / Ricerca
+## English
 
-**Topics:** `cities-skylines`, `cities-skylines-1`, `cities-skylines-mod`, `csharp`, `terrain`, `zoning`, `polygon`
+### Overview
+**Metropolis Terrain Lots · Placemaker** upgrades polygonal terrain sketching in Cities: Skylines 1 into a full in-game procedural area builder for **parking lots, city parks, nature gardens, urban plazas, and zoned blocks with interior courtyard outgrow**, complete with a live map overlay and multi-step undo.
 
-**Keywords:** terrain-aware lots, freeform zoning, polygon rasterization, slope, organic city; lotti, terreno, pendenza, zoning poligonale, città organiche.
+### Key Features (Placemaker-inspired)
+- **4 Selection Modes:** *Points (Polygon)* with Curb & 90° Right-Angle Snapping, *Paint Bucket (Block Fill)* to automatically trace enclosed road blocks, *Rectangle Brush*, and *Circle Brush* (`16–64 m`).
+- **5 Procedural Presets:** *Parking Lot*, *City Park*, *Garden & Nature*, *Urban Plaza*, and *Zone + Courtyard Outgrow*.
+- **Outgrow Border Blending:** Organically blends non-road lot boundaries with hedges and shrubs so parks and car parks merge naturally with adjacent lots.
+- **Live Map Overlay & Full Undo:** Previews paths, parking stalls, trees, props, and zone cells via `RenderManager.OverlayEffect` before committing, and supports one-click **Undo Last** on the simulation thread.
+
+### Build & Run
+Run `./build.ps1` in PowerShell to compile `dist/MetropolisTerrainLots.dll` and run all 20 automated checks. Press **`Alt+P`** or click the floating **`P/T`** button in-game to open the tool.
+
+---
 
 ## Support / Donazioni
 
 Optional / Facoltative: [Ko-fi](https://ko-fi.com/mrjonam) · [Buy Me a Coffee](https://www.buymeacoffee.com/mrjonam) · [PayPal](https://paypal.me/manorollo).
 
-Original source: MIT. Game assemblies and third-party code are not redistributed. Independent of Colossal Order, Paradox and Citystate Metropolis.
+Original source: MIT. Game assemblies and third-party code are not redistributed.
